@@ -53,9 +53,9 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    const database = client.db("go_work");
-    const jobsCollection = database.collection("jobs");
-    const bitCollection = database.collection("bitCollection");
+    const database = client.db("library");
+    const bookCollection = database.collection("bookCollection");  
+
 
     // jwt .......................................................................
 
@@ -63,7 +63,11 @@ async function run() {
 
 
     // book creating sector..........................................
-
+    app.post("/book", async (req, res) => {
+        const newData = req.body; 
+        const result = await bookCollection.insertOne(newData);
+        res.send(result);
+      });
 
 
     // book borrowed sector................................................
