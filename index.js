@@ -92,6 +92,22 @@ async function run() {
         res.send(result);
       });
 
+      app.patch("/my-book/:id", async (req, res) => {
+        const id = req.params.id; 
+        const data = req.body;
+        const filter = { _id: new ObjectId(id) };
+  
+        const updateDoc = {
+          $set: {
+            ...data,
+          },
+        };
+  
+        const options = { upsert: true };
+        const result = await bookCollection.updateOne(filter, updateDoc, options);
+        res.send(result);
+      });
+
 
       app.delete("/book/:id", async (req, res) => {
         const id = req.params.id;  
