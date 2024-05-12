@@ -9,7 +9,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 
 const corsOption = {
-  origin: ["http://localhost:5173", "http://localhost:5174","https://libraryan.netlify.app/"],
+  origin: ["http://localhost:5173", "http://localhost:5174","https://libraryan.netlify.app"],
   credentials: true,
   optionSuccessStatus: 200,
 };
@@ -79,6 +79,13 @@ async function run() {
         res.send(result);
       });
 
+      app.get("/book/:id", async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await bookCollection.findOne(query);
+        res.send(result);
+      });
+  
 
     // book borrowed sector................................................
 
