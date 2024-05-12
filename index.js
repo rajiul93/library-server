@@ -55,6 +55,7 @@ async function run() {
   try {
     const database = client.db("library");
     const bookCollection = database.collection("bookCollection");  
+    const categoryCollection = database.collection("categoryCollection");  
 
 
     // jwt .......................................................................
@@ -63,6 +64,15 @@ async function run() {
 
 
     // book creating sector..........................................
+    app.get("/book", async (req, res) => {
+        const result = await bookCollection.find().toArray();
+        res.send(result);
+      });
+    app.get("/book-category", async (req, res) => {
+        const result = await categoryCollection.find().toArray();
+        res.send(result);
+      });
+
     app.post("/book", async (req, res) => {
         const newData = req.body; 
         const result = await bookCollection.insertOne(newData);
