@@ -85,8 +85,21 @@ async function run() {
         const result = await bookCollection.findOne(query);
         res.send(result);
       });
-  
+      app.get("/my-book/:email", async (req, res) => {
+        const email = req.params.email; 
+        const query = { email: email };
+        const result = await bookCollection.find(query).toArray();
+        res.send(result);
+      });
 
+
+      app.delete("/book/:id", async (req, res) => {
+        const id = req.params.id;  
+        const query = { _id: new ObjectId(id) };
+        const result = await bookCollection.deleteOne(query);
+        res.send(result);
+      });
+  
     // book borrowed sector................................................
 
 
