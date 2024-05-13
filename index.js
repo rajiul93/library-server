@@ -132,6 +132,15 @@ async function run() {
 
     // book borrowed sector................................................
 
+
+    app.get("/borrow/:email", async (req, res) => {
+        const email = req.params.email
+      const query = { email: email};
+
+        const result = await borrowedCollection.find(query).toArray();
+        res.send(result);
+      });
+
     app.patch("/borrow/:id", async (req, res) => {
         const id = req.params.id;
         const data = req.body;
