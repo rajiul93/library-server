@@ -9,7 +9,11 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 
 const corsOption = {
-  origin: ["http://localhost:5173", "http://localhost:5174","https://libraryan.netlify.app"],
+  origin: [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "https://libraryan.netlify.app",
+  ],
   credentials: true,
   optionSuccessStatus: 200,
 };
@@ -54,52 +58,90 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     const database = client.db("library");
-    const bookCollection = database.collection("bookCollection");  
-    const categoryCollection = database.collection("categoryCollection");  
-
+    const bookCollection = database.collection("bookCollection");
+    const categoryCollection = database.collection("categoryCollection");
+    const borrowedCollection = database.collection("borrowedCollection");
 
     // jwt .......................................................................
 
     //   jwt finish
 
-
     // book creating sector..........................................
     app.get("/book", async (req, res) => {
-        const result = await bookCollection.find().toArray();
-        res.send(result);
-      });
-    app.get("/book-category", async (req, res) => {
-        const result = await categoryCollection.find().toArray();
-        res.send(result);
-      });
+      const result = await bookCollection.find().toArray();
+      res.send(result);
+    });
 
     app.post("/book", async (req, res) => {
-        const newData = req.body; 
-        const result = await bookCollection.insertOne(newData);
-        res.send(result);
-      });
+      const newData = req.body;
+      const result = await bookCollection.insertOne(newData);
+      res.send(result);
+    });
 
-      app.get("/book/:id", async (req, res) => {
+    app.get("/book/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await bookCollection.findOne(query);
+      res.send(result);
+    });
+    app.get("/my-book/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const result = await bookCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.patch("/my-book/:id", async (req, res) => {
+      const id = req.params.id;
+      const data = req.body;
+      const filter = { _id: new ObjectId(id) };
+
+      const updateDoc = {
+        $set: {
+          ...data,
+        },
+      };
+
+      const options = { upsert: true };
+      const result = await bookCollection.updateOne(filter, updateDoc, options);
+      res.send(result);
+    });
+
+    app.delete("/book/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await bookCollection.deleteOne(query);
+      res.send(result);
+    });
+    //  book category sector ./.................................................
+
+    app.get("/book-category", async (req, res) => {
+      const result = await categoryCollection.find().toArray();
+      res.send(result);
+    });
+    app.get("/same-category/:category", async (req, res) => {
+      const category = req.params.category;
+   
+      const options = {
+        projection: { title: 1, image: 1, authorName: 1, category: 1,rating:1,shortDescription:1 },
+      };
+      const query = { category: category };
+      const result = await bookCollection.find(query,options).toArray()
+      res.send(result);
+    });
+
+    // book borrowed sector................................................
+
+    app.patch("/borrow/:id", async (req, res) => {
         const id = req.params.id;
-        const query = { _id: new ObjectId(id) };
-        const result = await bookCollection.findOne(query);
-        res.send(result);
-      });
-      app.get("/my-book/:email", async (req, res) => {
-        const email = req.params.email; 
-        const query = { email: email };
-        const result = await bookCollection.find(query).toArray();
-        res.send(result);
-      });
-
-      app.patch("/my-book/:id", async (req, res) => {
-        const id = req.params.id; 
         const data = req.body;
+        const quantity =data.newQuantity;
+        console.log(id, data);
         const filter = { _id: new ObjectId(id) };
   
         const updateDoc = {
           $set: {
-            ...data,
+            quantity: quantity
           },
         };
   
@@ -109,15 +151,13 @@ async function run() {
       });
 
 
-      app.delete("/book/:id", async (req, res) => {
-        const id = req.params.id;  
-        const query = { _id: new ObjectId(id) };
-        const result = await bookCollection.deleteOne(query);
+
+    app.post("/borrow", async (req, res) => {
+        const newData = req.body;
+        console.log(newData);
+        const result = await borrowedCollection.insertOne(newData);
         res.send(result);
       });
-  
-    // book borrowed sector................................................
-
 
     await client.db("admin").command({ ping: 1 });
     // console.log(
