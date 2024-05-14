@@ -61,10 +61,31 @@ async function run() {
     const bookCollection = database.collection("bookCollection");
     const categoryCollection = database.collection("categoryCollection");
     const borrowedCollection = database.collection("borrowedCollection");
+    const userCollection = database.collection("userCollection");
 
     // jwt .......................................................................
 
     //   jwt finish
+    // user manage api........................................
+    app.get("/user/:email", async (req, res) => {
+        const email = req.params.email
+        const query = { email: email };
+        
+        const result = await userCollection.findOne(query) ;
+        res.send(result);
+      });
+
+
+    app.post("/user", async (req, res) => {
+        const data = req.body;
+        console.log(data);
+      const newData = {role: "user"};
+      const doc = {...data,...newData }
+      const result = await userCollection.insertOne(doc);
+      res.send(result);
+    });
+
+  
 
     // book creating sector..........................................
     app.get("/book", async (req, res) => {
@@ -121,62 +142,63 @@ async function run() {
     });
     app.get("/same-category/:category", async (req, res) => {
       const category = req.params.category;
-   
+
       const options = {
-        projection: { title: 1, image: 1, authorName: 1, category: 1,rating:1,shortDescription:1 },
+        projection: {
+          title: 1,
+          image: 1,
+          authorName: 1,
+          category: 1,
+          rating: 1,
+          shortDescription: 1,
+        },
       };
       const query = { category: category };
-      const result = await bookCollection.find(query,options).toArray()
+      const result = await bookCollection.find(query, options).toArray();
       res.send(result);
     });
 
     // book borrowed sector................................................
 
-
     app.get("/borrow/:email", async (req, res) => {
-        const email = req.params.email
-      const query = { email: email};
+      const email = req.params.email;
+      const query = { email: email };
 
-        const result = await borrowedCollection.find(query).toArray();
-        res.send(result);
-      });
+      const result = await borrowedCollection.find(query).toArray();
+      res.send(result);
+    });
 
     app.patch("/borrow/:id", async (req, res) => {
-        const id = req.params.id;
-        const data = req.body;
-        const quantity =data.newQuantity;
-        console.log(id, data);
-        const filter = { _id: new ObjectId(id) };
-  
-        const updateDoc = {
-          $set: {
-            quantity: quantity
-          },
-        };
-  
-        const options = { upsert: true };
-        const result = await bookCollection.updateOne(filter, updateDoc, options);
-        res.send(result);
-      });
+      const id = req.params.id;
+      const data = req.body;
+      const quantity = data.newQuantity;
+      console.log(id, data);
+      const filter = { _id: new ObjectId(id) };
 
+      const updateDoc = {
+        $set: {
+          quantity: quantity,
+        },
+      };
 
+      const options = { upsert: true };
+      const result = await bookCollection.updateOne(filter, updateDoc, options);
+      res.send(result);
+    });
 
     app.post("/borrow", async (req, res) => {
-        const newData = req.body;
-        console.log(newData);
-        const result = await borrowedCollection.insertOne(newData);
-        res.send(result);
-      });
+      const newData = req.body;
+      console.log(newData);
+      const result = await borrowedCollection.insertOne(newData);
+      res.send(result);
+    });
 
-
-      app.delete("/borrow-return/:id", async (req, res) => {
-        const id = req.params.id; 
-        const query = { _id: new ObjectId(id) };
-        const result = await borrowedCollection.deleteOne(query);
-        res.send(result);
-      });
-
-
+    app.delete("/borrow-return/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await borrowedCollection.deleteOne(query);
+      res.send(result);
+    });
 
     await client.db("admin").command({ ping: 1 });
     // console.log(
