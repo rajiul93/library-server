@@ -37,23 +37,23 @@ const client = new MongoClient(uri, {
   },
 });
 
-// const verifyToken = (req, res, next) => {
-//   const token = req.cookies.token;
-//   if (!token) return res.status(401).send({ message: "unauthorized access" });
-//   if (token) {
-//     jwt.verify(token, process.env.SECRET_TOKEN, (err, decode) => {
-//       if (err) {
-//         console.log(err);
-//         return res
-//           .status(401)
-//           .send({ message: "unauthorized access invalid " });
-//       }
-//       console.log(decode);
-//       req.user = decode;
-//       next();
-//     });
-//   }
-// };
+const verifyToken = (req, res, next) => {
+  const token = req.cookies.token;
+
+  if (!token) return res.status(401).send({ message: "unauthorized access" });
+  if (token) {
+    jwt.verify(token, process.env.DB_SECRET, (err, decoded) => {
+      if (err) { 
+        return res
+          .status(401)
+          .send({ message: "unauthorized access invalid " });
+      }
+
+      req.user = decoded;
+      next();
+    });
+  }
+};
 
 async function run() {
   try {
@@ -64,37 +64,86 @@ async function run() {
     const userCollection = database.collection("userCollection");
 
     // jwt .......................................................................
+    app.post("/jwt", async (req, res) => {
+      const user = req.body; 
+      const token = jwt.sign(user, process.env.DB_SECRET, {
+        expiresIn: "1h",
+      });
+      res
+        .cookie("token", token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        })
+        .send({ success: "true" });
+    });
 
+    app.get("/log-uot", (req, res) => {
+      res
+        .clearCookie("token", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+          maxAge: 0,
+        })
+        .send({ success: "true" });
+    });
     //   jwt finish
     // user manage api........................................
     app.get("/user/:email", async (req, res) => {
-        const email = req.params.email
-        const query = { email: email };
-        
-        const result = await userCollection.findOne(query) ;
-        res.send(result);
-      });
+      const email = req.params.email;
+      const query = { email: email };
 
+      const result = await userCollection.findOne(query);
+      res.send(result);
+    });
 
     app.post("/user", async (req, res) => {
-        const data = req.body;
-        console.log(data);
-      const newData = {role: "user"};
-      const doc = {...data,...newData }
+      const data = req.body; 
+      const newData = { role: "user" };
+      const doc = { ...data, ...newData };
       const result = await userCollection.insertOne(doc);
       res.send(result);
     });
 
-  
-
     // book creating sector..........................................
-    app.get("/book", async (req, res) => {
+    // use hear jwt for condition
+    app.get("/book",verifyToken, async (req, res) => {
+      const email = req.query?.email
+
+      const tokenData = req.user.email; 
+      if (tokenData !== email) {
+       return res
+       .status(403)
+       .send({ message: "forbidden access" })
+      }
+
       const result = await bookCollection.find().toArray();
       res.send(result);
     });
 
-    app.post("/book", async (req, res) => {
+
+
+    app.get("/books",  async (req, res) => {
+      
+      const result = await bookCollection.find().toArray();
+      res.send(result);
+    });
+
+
+
+
+    // new book page add api hear use jwt
+    app.post("/book", verifyToken, async (req, res) => {
       const newData = req.body;
+
+      const tokenData = req.user.email;
+      if (tokenData !== newData.email) {
+       return res
+       .status(403)
+       .send({ message: "forbidden access" })
+      }
+
       const result = await bookCollection.insertOne(newData);
       res.send(result);
     });
@@ -171,8 +220,7 @@ async function run() {
     app.patch("/borrow/:id", async (req, res) => {
       const id = req.params.id;
       const data = req.body;
-      const quantity = data.newQuantity;
-      console.log(id, data);
+      const quantity = data.newQuantity; 
       const filter = { _id: new ObjectId(id) };
 
       const updateDoc = {
@@ -187,8 +235,7 @@ async function run() {
     });
 
     app.post("/borrow", async (req, res) => {
-      const newData = req.body;
-      console.log(newData);
+      const newData = req.body; 
       const result = await borrowedCollection.insertOne(newData);
       res.send(result);
     });
@@ -200,12 +247,8 @@ async function run() {
       res.send(result);
     });
 
-    await client.db("admin").command({ ping: 1 });
-    // console.log(
-    //   "Pinged your deployment. You successfully connected to MongoDB!"
-    // );
-  } finally {
-    // Ensures that the client will close when you finish/error
+    await client.db("admin").command({ ping: 1 }); 
+  } finally { 
   }
 }
 run().catch(console.dir);
